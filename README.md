@@ -19,7 +19,7 @@
 #### [gitCode地址](https://gitcode.com/ochb/openCallHub)
 #### [重构MRCP服务端地址](https://github.com/sxwdmjy/och-mrcp)
 #### [使用文档](https://opencallhub.com/doc/)
-#### [商业版体验地址](https://101.96.144.51:5175/) ceshiziguanli@Admin/ceshiziguanli@Admin
+#### [体验地址](https://101.96.144.51:5175/) ceshiziguanli@Admin/ceshiziguanli@Admin
 
 #### 请勿修改系统数据
 
