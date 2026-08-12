@@ -1,0 +1,8 @@
+<!-- RTP 端口收窄到 20000-20199（100 路并发足够本地测试），
+     与 compose 端口映射一致；避开 och-mrcp 占用的宿主机 10000-20000 段。 -->
+<configuration name="switch.conf" description="Core Configuration">
+  <settings>
+    <param name="rtp-start-port" value="20000"/>
+    <param name="rtp-end-port" value="20199"/>
+  </settings>
+</configuration>

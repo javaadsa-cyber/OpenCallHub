@@ -1,0 +1,15 @@
+<!-- ESL inbound：och-api 容器按 fs_config 表连入。
+     密码必须与 deploy/mysql/init/02-seed.sql 的 fs_config.password 一致。
+     必须显式配 apply-inbound-acl：不配时 mod_event_socket 默认 loopback.auto，
+     只放行 127.0.0.1，och-api 容器连入会被 rude-rejection（Access Denied）；
+     localnet.auto 又不含 127.0.0.1（容器内 fs_cli 会被拒）。
+     esl_clients 定义见 acl.conf.xml：loopback + RFC1918（含 docker 子网）。 -->
+<configuration name="event_socket.conf" description="Socket Client">
+  <settings>
+    <param name="nat-map" value="false"/>
+    <param name="listen-ip" value="0.0.0.0"/>
+    <param name="listen-port" value="8021"/>
+    <param name="password" value="ClueCon"/>
+    <param name="apply-inbound-acl" value="esl_clients"/>
+  </settings>
+</configuration>

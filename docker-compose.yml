@@ -1,0 +1,146 @@
+name: opencallhub
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: och-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_DATABASE: openCallHub
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    ports:
+      - "3306:3306"          # 仅供宿主机 IDE/客户端调试用，可删
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 首次启动（空数据卷）自动执行；修改种子后需 docker compose down -v 才会重跑
+      - ./doc/system.sql:/docker-entrypoint-initdb.d/01-system.sql:ro
+      - ./deploy/mysql/init/02-seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      # 可选大数据量初始化（phone_location.sql 约 51 万行，首次启动很慢），按需取消注释：
+      # - ./doc/och_area_code.sql:/docker-entrypoint-initdb.d/10-area.sql:ro
+      # - ./doc/och_region.sql:/docker-entrypoint-initdb.d/11-region.sql:ro
+      # - ./doc/phone_location.sql:/docker-entrypoint-initdb.d/12-phone-location.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [och]
+
+  redis:
+    image: redis:7-alpine
+    container_name: och-redis
+    # 密码固定 123456：och-mrcp 的 RedissonManager 硬编码了它，勿改
+    command: ["redis-server", "--requirepass", "123456", "--appendonly", "no"]
+    ports:
+      - "6379:6379"          # 必须发布：host 网络模式的 och-mrcp 通过宿主机 127.0.0.1:6379 访问
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "123456", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [och]
+
+  freeswitch:
+    build:
+      context: ./deploy/freeswitch     # 源码编译（镜像源白名单无 signalwire/freeswitch）
+    image: och-freeswitch:local
+    container_name: och-freeswitch
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      - "5060:5060/udp"                  # SIP internal profile（软电话注册）
+      - "5060:5060/tcp"
+      - "8021:8021"                      # ESL/fs_cli 宿主机调试
+      - "20000-20199:20000-20199/udp"    # RTP 收窄段（见 switch.conf.xml 覆盖）
+    volumes:
+      # 三个覆盖配置；其余用镜像内默认 conf（含 1000~1019 内置 directory）。
+      # 注意：configure 按 FHS 布局生成目录，实际 conf 目录是 $prefix/etc/freeswitch
+      - ./deploy/freeswitch/autoload_configs/xml_curl.conf.xml:/usr/local/freeswitch/etc/freeswitch/autoload_configs/xml_curl.conf.xml:ro
+      - ./deploy/freeswitch/autoload_configs/event_socket.conf.xml:/usr/local/freeswitch/etc/freeswitch/autoload_configs/event_socket.conf.xml:ro
+      - ./deploy/freeswitch/autoload_configs/switch.conf.xml:/usr/local/freeswitch/etc/freeswitch/autoload_configs/switch.conf.xml:ro
+      - ./deploy/freeswitch/autoload_configs/acl.conf.xml:/usr/local/freeswitch/etc/freeswitch/autoload_configs/acl.conf.xml:ro
+    healthcheck:
+      test: ["CMD", "fs_cli", "-p", "ClueCon", "-x", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks: [och]
+
+  och-api:
+    build:
+      context: .
+      args:
+        MODULE: och-api
+        JAR_FILE: och-api-0.0.1.jar
+    container_name: och-api
+    environment:
+      TZ: Asia/Shanghai
+      JAVA_OPTS: "-Xms512m -Xmx1g"
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/openCallHub?useSSL=false&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true&useServerPrepStmts=true&cachePrepStmts=true"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+      SPRING_DATA_REDIS_PASSWORD: "123456"
+    ports:
+      - "4320:4320"          # HTTP/xml_curl/swagger，外部 FreeSWITCH 需访问
+      - "9527:9527"          # 内嵌 Netty 文件服务
+    volumes:
+      - och-record:/record   # 录音目录（生产通常由 FS 主机共享，本地开发用卷即可）
+      - och-temp:/temp
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      # FS 必须先就绪：och-api 启动时 ESL 连失败会把 fs_config.status 置 1 且不再重试
+      freeswitch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/4320"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+      start_period: 40s
+    networks: [och]
+
+  och-mrcp:
+    build:
+      context: .
+      args:
+        MODULE: och-mrcp
+        JAR_FILE: och-mrcp-jar-with-dependencies.jar
+        MAIN_CLASS: com.och.OchMrcpServer
+    container_name: och-mrcp
+    # 仅 Linux：硬编码 redis://127.0.0.1:6379 + 1万端口 RTP 范围，host 网络是最简解
+    network_mode: host
+    environment:
+      TZ: Asia/Shanghai
+      # OCH_HOST_IP = 宿主机对外 IP（外部 FS 能路由到的地址），写进 SIP Contact 头
+      JAVA_OPTS: >-
+        -Xms512m -Xmx1g
+        -Dsip.server.address=${OCH_HOST_IP:-127.0.0.1}
+    # 可选：覆盖 engine.conf（阿里云 NLS 密钥等）时取消注释，
+    # 将修改后的 conf 放到 deploy/mrcp/config/ 下（classpath 前置生效）
+    # volumes:
+    #   - ./deploy/mrcp/config:/app/config:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # 可选：och-file-client 正常部署在 FreeSWITCH 主机上（本地回放录音文件），
+  # 本地方案默认不启用；如需验证可照 och-api 的 build 方式自行添加。
+
+volumes:
+  mysql-data:
+  och-record:
+  och-temp:
+
+networks:
+  och:
+    driver: bridge

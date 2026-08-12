@@ -1,0 +1,19 @@
+<!-- 动态配置回源到 och-api（compose 服务名解析，容器间直连）。
+     密钥必须与 och-api application.yml 的 fs.xml-curl.secretKey 一致。
+     bindings 说明：
+       configuration — ACL(fs_access_control)、sofia 网关(fs_sip_gateway) 走动态，
+                       其余模块配置 och-api 返回空 section，FS 自动回落静态文件
+       dialplan      — 拨号计划来自 fs_dialplan 表（见 02-seed.sql 种子）
+     不绑定 directory：SIP 注册鉴权用 FS 内置 directory（1000~1019，密码 1234）。
+     上游设计里 directory 走 Kamailio，FsDirectoryXmlCurlHandler 注解被注释未启用。 -->
+<configuration name="xml_curl.conf" description="cURL XML Gateway">
+  <bindings>
+    <binding name="och-api">
+      <param name="gateway-url" value="http://och-api:4320/fs/curl/api" bindings="dialplan|configuration"/>
+      <param name="gateway-credentials" value="b4c91178-c00e-7e42-6a9b-2c470eb0fb30"/>
+      <param name="auth-scheme" value="basic"/>
+      <param name="disable-100-continue" value="true"/>
+      <param name="timeout" value="10"/>
+    </binding>
+  </bindings>
+</configuration>

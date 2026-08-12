@@ -1,0 +1,19 @@
+<!-- ACL 覆盖（挂载到 etc/freeswitch/autoload_configs/）：
+     不配 apply-inbound-acl 时 mod_event_socket 默认 loopback.auto；
+     localnet.auto 又不含 127.0.0.1——两者单独用都会把某一边拒掉，
+     故自定义 esl_clients：loopback + RFC1918（docker 子网 172.16-31 全覆盖）。 -->
+<configuration name="acl.conf" description="Network Lists">
+  <network-lists>
+    <list name="esl_clients" default="deny">
+      <node type="allow" cidr="127.0.0.0/8"/>
+      <node type="allow" cidr="::1/128"/>
+      <node type="allow" cidr="10.0.0.0/8"/>
+      <node type="allow" cidr="172.16.0.0/12"/>
+      <node type="allow" cidr="192.168.0.0/16"/>
+    </list>
+    <!-- 保留 vanilla 的 domains（directory 中 cidr= 属性会用到） -->
+    <list name="domains" default="deny">
+      <node type="allow" domain="$${domain}"/>
+    </list>
+  </network-lists>
+</configuration>
