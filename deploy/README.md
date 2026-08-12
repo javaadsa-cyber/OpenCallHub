@@ -33,6 +33,7 @@ docker compose ps         # mysql/redis/freeswitch/och-api 应 healthy，och-mrc
 | 服务 | 端口 | 说明 |
 |---|---|---|
 | freeswitch | 5060 (udp+tcp) | SIP internal profile（软电话注册） |
+| freeswitch | 5080 (udp+tcp) | SIP external profile（运营商 SIP trunk 入向/出向） |
 | freeswitch | 8021 | ESL inbound，密码 ClueCon（宿主机 `fs_cli -H 127.0.0.1 -P 8021 -p ClueCon` 调试；注意 `-p`=密码 `-P`=端口） |
 | freeswitch | 20000-20199/udp | RTP 媒体段（收窄配置见 switch.conf.xml） |
 | och-api | 4320 | HTTP / Swagger (`/swagger-ui.html`) / Druid (`/druid/`，admin/admin123) / FS xml_curl (`/fs/curl/api`) |
@@ -67,6 +68,94 @@ docker compose ps         # mysql/redis/freeswitch/och-api 应 healthy，och-mrc
 7. **och-file-client 未容器化**：它正常部署在 FreeSWITCH 主机上（拉取录音/语音文件到
    `/usr/local/freeswitch/sounds`），本地验证一般用不到；需要时可参照 och-api 的 build 方式
    自行添加 service。
+
+## 对接运营商 SIP Trunk
+
+本 compose 默认只通了**本地分机互拨**（1000 ↔ 1001）。要打通到运营商（PSTN / 外线 SIP trunk），
+需要补齐 4 项：网关定义 + 显号 + 呼出路由 + 入向 DID 映射。
+
+**架构**：FreeSWITCH 直连运营商 SBC（Kamailio 不在本 compose 内；如需多 FS 节点 / TLS / 严格 NAT，
+独立部署 Kamailio 作边缘代理即可，上游 `doc/kamailio.cfg` 有参考配置）。
+
+```
+软电话(1000/1001) ←→ FS internal(:5060)
+                     FS external(:5080) ←→ 运营商 SBC ←→ PSTN
+```
+
+### 本地种子数据（已预置，演示用占位符）
+
+`deploy/mysql/init/02-seed.sql` 末尾已插入：
+
+| 表 | 示例值 | 作用 |
+|---|---|---|
+| `fs_sip_gateway` (id=100) | name=carrier-demo, realm/proxy=`sip.carrier.example.com` | FS external profile 上的 SIP trunk |
+| `call_display` (id=100,101) | phone=`01012345678`, 主叫+被叫 | 外呼显号（`ICallServiceImpl.makeCall` 强制要求） |
+| `call_route` (id=100) | route_num=`^[0-9]{11,}$`, route_type=2, route_value=`'100'` | 11+ 位号码路由到 carrier-demo（MySQL REGEXP 匹配） |
+| `fs_dialplan` (id=18) | expression=`^01012345678$`, context=public | 入向 DID → 坐席 1000 |
+
+### 接入真实运营商的改造步骤
+
+1. **替换 gateway 信息**（按运营商给的 SIP trunk 参数）：
+   ```sql
+   UPDATE fs_sip_gateway SET
+     realm = '<运营商SBC域名>',
+     proxy = '<运营商SBC域名>',
+     user_name = '<SIP账号>',
+     password = '<SIP密码>',
+     register = 1,            -- 1=需注册，0=不注册（部分运营商 IP 鉴权）
+     transport = 1            -- 1=UDP, 2=TCP
+   WHERE id = 100;
+   ```
+2. **替换显号**：`UPDATE call_display SET phone = '<运营商分配的 DID>' WHERE id IN (100, 101);`
+3. **调整呼出路由正则**（如需区分固话/手机/国际）：
+   ```sql
+   -- 示例：只匹配中国手机号
+   UPDATE call_route SET route_num = '^1[3-9][0-9]{9}$' WHERE id = 100;
+   ```
+4. **调整入向 DID 映射**（按真实 DID）：
+   ```sql
+   UPDATE fs_dialplan SET
+     expression = '^<你的DID>$',
+     content = '<extension name="inbound-did"><condition field="destination_number" expression="^<你的DID>$"><action application="answer"/><action application="bridge" data="user/1000@${domain}"/></condition></extension>'
+   WHERE id = 18;
+   ```
+5. **reload 配置**（无需重启容器）：
+   ```bash
+   docker compose exec -T freeswitch fs_cli -p ClueCon -x "sofia profile external rescan"
+   ```
+6. **验证网关状态**（应为 `REGISTERED`；占位符域名下是 `TRYING`）：
+   ```bash
+   docker compose exec -T freeswitch fs_cli -p ClueCon -x "sofia status gateway carrier-demo"
+   ```
+
+### 外呼 / 入呼验证
+
+```bash
+# 外呼：ESL originate（经 carrier-demo 网关）
+docker compose exec -T freeswitch fs_cli -p ClueCon -x \
+  "originate sofia/external/13812345678@sip.carrier.example.com &park()"
+
+# 入呼：从 PSTN 拨运营商 DID → 应振铃软电话 1000
+```
+
+### 常见运营商参数差异
+
+| 运营商 | realm / proxy | transport | 认证方式 | 备注 |
+|---|---|---|---|---|
+| 天翼云通信（电信） | `sip.<region>.chinatelecom.com` | UDP | SIP Digest | 需实名制备案 |
+| 沃通信（联通） | `sip.wo.cn` | UDP | SIP Digest | 企业专线优先 |
+| 移动 MAS | 区域 SBC 地址 | UDP | SIP Digest / IP 鉴权 | 部分省 IP 鉴权（register=0） |
+| 阿里云通信 | `sip.voice.aliyuncs.com` | UDP/TCP | SIP Digest | 文档：<https://help.aliyun.com/product/44282.html> |
+| 腾讯云 voIP | `sip.qq.com` | UDP | SIP Digest | 文档：云通信 → 语音 |
+| 容联云 | `sip.yuntongxun.com` | UDP | SIP Digest | 提供 SDK，可绕开 SIP 层 |
+
+### 注意事项
+
+- **external 公网 IP**：FS 默认通过 STUN 自动检测（`nat_public_addr`），本 compose 未显式覆盖；
+  若 NAT 检测失效（多网卡 / 云环境），需在 FS 的 `vars.xml` 里手动指定 `external_sip_ip` / `external_rtp_ip`。
+- **防火墙**：宿主机需放行 5080/udp+tcp（SIP）和 20000-20199/udp（RTP）给运营商 SBC 源 IP。
+- **编解码**：国内运营商多用 PCMU/PCMA（G.711），本 FS 已支持。G.729 需商用许可的 `mod_g729`。
+- **SRTP/TLS**：部分运营商强制。本演示未启用；生产环境需在 sofia external profile 加 `tls=true` 并配置证书。
 
 ## macOS / Windows 降级路径
 

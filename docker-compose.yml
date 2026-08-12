@@ -54,6 +54,8 @@ services:
     ports:
       - "5060:5060/udp"                  # SIP internal profile（软电话注册）
       - "5060:5060/tcp"
+      - "5080:5080/udp"                  # SIP external profile（运营商 SIP trunk 入向）
+      - "5080:5080/tcp"
       - "8021:8021"                      # ESL/fs_cli 宿主机调试
       - "20000-20199:20000-20199/udp"    # RTP 收窄段（见 switch.conf.xml 覆盖）
     volumes:

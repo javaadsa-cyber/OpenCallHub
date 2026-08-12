@@ -91,3 +91,58 @@ VALUES
 -- ============================================================
 INSERT INTO sys_role_menu (`role_id`, `menu_id`, `create_by`, `create_time`, `del_flag`)
 SELECT 1, `menu_id`, 1, NOW(), 0 FROM sys_menu WHERE `del_flag` = 0;
+
+-- ============================================================
+-- 运营商 SIP trunk 基础设施（本地演示用占位符，真实接入需替换）
+-- 作用：打通 "坐席外呼 → 运营商 → PSTN" 和 "PSTN → 运营商 → 坐席" 两条通路。
+-- 关键链路：
+--   外呼：ICallServiceImpl.makeCall → getCallRoute(被叫, type=2) →
+--         取 fs_sip_gateway(route_value) → fsClient.makeCall(sofia/external/<called>@<realm>)
+--   入呼：FS external profile (context=public) → fs_dialplan 规则 → bridge user/分机
+-- 参考：och-api 的 FsSipGatewayXmlCurlHandler 把 fs_sip_gateway 动态下发为 sofia gateway XML。
+--
+-- 真实运营商接入请替换：realm / proxy / user_name / password / fs_dialplan 的 DID
+-- （常见运营商参数：天翼云通信、沃通信、阿里云通信、腾讯云 voIP、容联云 ——
+--  realm/proxy 一般给 SIP SBC 域名；transport 多为 UDP，少数要 TCP；
+--  认证多为 SIP Digest；部分要求 TLS/SRTP 本演示未覆盖）
+-- ============================================================
+
+-- ① 示例 SIP trunk（占位符，id=100 避开 system.sql AUTO_INCREMENT=8 的初始段）
+INSERT INTO fs_sip_gateway
+(`id`, `name`, `user_name`, `password`, `realm`, `proxy`, `register`, `transport`,
+ `caller_id_in_from`, `from_domain`, `retry_time`, `ping_time`, `expire_time`,
+ `type`, `gateway_type`, `create_by`, `create_time`, `del_flag`)
+VALUES
+(100, 'carrier-demo', 'trunk_user', 'trunk_pass',
+ 'sip.carrier.example.com', 'sip.carrier.example.com',
+ 1, 1, 0, '', 30, 30, 3600, 2, 1, 1, NOW(), 0);
+
+-- ② 主叫显号 + 被叫显号（ICallServiceImpl.makeCall 取任意显号，这里种两条演示）
+--    type=1 主叫显号（外呼时对端看到的来电号），type=2 被叫显号（入呼时本端显号）
+--    真实值应使用运营商分配的 DID
+INSERT INTO call_display
+(`id`, `phone`, `type`, `area`, `create_by`, `create_time`, `del_flag`)
+VALUES
+(100, '01012345678', 1, '北京', 1, NOW(), 0),
+(101, '01012345678', 2, '北京', 1, NOW(), 0);
+
+-- ③ 呼出路由：匹配 11+ 位数字（中国手机号 1xx + 固话 0xx），走 carrier-demo gateway
+--    SQL 用 MySQL REGEXP 匹配（见 CallRouteMapper.xml: #{routeNumber} regexp cr.route_num）
+--    type=2 (呼出路由)  route_type=2 (外呼)  status=1 (启用)  level=0 (优先级)
+--    route_value 是 fs_sip_gateway.id（字符串形式）
+INSERT INTO call_route
+(`id`, `name`, `route_num`, `type`, `level`, `status`, `route_type`, `route_value`,
+ `create_by`, `create_time`, `del_flag`)
+VALUES
+(100, 'outbound-carrier', '^[0-9]{11,}$', 2, 0, 1, 2, '100', 1, NOW(), 0);
+
+-- ④ DID 入向规则：运营商把入呼送到 FS external profile（context=public），
+--    本规则把来电号码 = 01012345678 的呼叫桥到坐席 1000。
+--    真实场景按运营商下发的 DID 号段调整 expression。
+INSERT INTO fs_dialplan
+(`group_id`, `name`, `type`, `expression`, `context_name`, `content`, `describe`,
+ `create_by`, `create_time`, `del_flag`)
+VALUES
+(2, 'inbound-did-demo', 'xml', '^01012345678$', 'public',
+ '<extension name="inbound-did-demo"><condition field="destination_number" expression="^01012345678$"><action application="answer"/><action application="set" data="call_direction=inbound"/><action application="bridge" data="user/1000@${domain}"/></condition></extension>',
+ '运营商入向 DID 01012345678 → 坐席 1000（占位符，按真实 DID 改）', 1, NOW(), 0);
