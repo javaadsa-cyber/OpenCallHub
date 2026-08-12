@@ -20,6 +20,9 @@ import java.util.List;
 @Data
 public class CallTaskContactQuery extends BaseQuery {
 
+    @Schema(description = "联系人ID")
+    private Long id;
+
     @Schema(description = "任务ID")
     private Long taskId;
 

@@ -158,6 +158,9 @@
         left join customer_template ct on cta.template_id = ct.id
         left join sip_agent sa on cta.agent_id = sa.id
         <where>
+            <if test="id != null">
+                and cta.id = #{id}
+            </if>
             <if test="taskId != null">
                 and cta.task_id = #{taskId}
             </if>

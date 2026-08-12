@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  */
 @RequiredArgsConstructor
 @Slf4j
-@Service("predictiveAlgorithmService")
+@Service("predictiveAlgorithmBasicService")
 public class PredictiveAlgorithmServiceImpl implements IPredictiveAlgorithmService {
 
     private final ICallTaskService callTaskService;
