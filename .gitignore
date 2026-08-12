@@ -33,3 +33,9 @@ build/
 .vscode/
 
 /logs/
+
+### 本地环境变量（含密码/真实 IP，勿提交）###
+.env
+
+### FS 构建源码（fetch-sources.sh 抓取，约 170MB，勿提交）###
+deploy/freeswitch/src/

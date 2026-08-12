@@ -1,3 +1,7 @@
+-- 勿删：mysql Docker entrypoint 以 latin1 客户端字符集导入 init 脚本，
+-- 不先 SET NAMES utf8mb4 会把本文件的 UTF-8 中文双重编码成乱码（菜单/角色等）。
+SET NAMES utf8mb4;
+
 -- openCallHub.call_display definition
 
 CREATE TABLE `call_display` (
@@ -848,7 +852,7 @@ CREATE TABLE `sys_menu` (
                             `update_time` datetime DEFAULT NULL COMMENT '更新时间',
                             `del_flag` tinyint(4) NOT NULL DEFAULT '0' COMMENT '删除标识 0 正常 1 删除',
                             PRIMARY KEY (`menu_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1092 DEFAULT CHARSET=utf8mb4 COMMENT='菜单权限表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='菜单权限表';
 
 
 -- openCallHub.sys_oper_log definition
@@ -1018,105 +1022,115 @@ VALUES(2, '演示角色', 'ROLE_MEMBER', 1, 4, 0, '作为演示使用', 1, '2024
 
 
 
-INSERT INTO sys_menu (menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
-                                                                                                                                                                                   ('系统管理',0,1,'#',NULL,1,'M',0,0,NULL,'AppstoreOutlined','系统管理目录',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('FS配置管理',0,2,'#',NULL,1,'M',0,0,NULL,'ControlOutlined','FS配置管理目录',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('呼叫管理',0,3,'#',NULL,1,'M',0,0,NULL,'PhoneOutlined','呼叫管理目录',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('用户管理',1,1,'/userManagement',NULL,1,'C',0,0,NULL,'','用户管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('角色管理',1,2,'/roleManagement',NULL,1,'C',0,0,NULL,'','角色管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('菜单管理',1,3,'/menuManagement',NULL,1,'C',0,0,NULL,'','菜单管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('日志管理',1,4,'/logManagement',NULL,1,'C',0,0,NULL,'','日志管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('企业管理',1,5,'/system/v1/corp',NULL,1,'C',0,0,NULL,'','企业管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('FS配置管理',2,1,'/fsConfigureManagement',NULL,1,'C',0,0,NULL,'','fs配置管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('FS模块配置管理',2,2,'/fsModuleConfigureManagement',NULL,1,'C',0,0,NULL,'','FS模块配置管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0);
-INSERT INTO sys_menu (menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
-                                                                                                                                                                                   ('FS网关管理',2,3,'/gatewayManagement',NULL,1,'C',0,0,NULL,'','FS网关管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('FS访问控制管理',2,4,'/accessControl',NULL,1,'C',0,0,NULL,'','FS访问控制管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('FS拨号计划管理',2,5,'/dialPlanManagement',NULL,1,'C',0,0,NULL,'','FS拨号计划管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('坐席管理',3,1,'/agentManagement',NULL,1,'C',0,0,NULL,'','坐席管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('号码路由管理',3,2,'/phoneNumberRoute',NULL,1,'C',0,0,NULL,'','号码路由管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('SIP号码管理',3,3,'/sipPhoneNumber',NULL,1,'C',0,0,NULL,'','SIP号码管理管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('号码池管理',3,4,'/phonePool',NULL,1,'C',0,0,NULL,'','号码池管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('号码管理',3,5,'/phoneNumber',NULL,1,'C',0,0,NULL,'','号码管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('语音文件管理',3,6,'/voiceFile',NULL,1,'C',0,0,NULL,'','语音文件管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('日程管理',3,7,'/scheduleManagement',NULL,1,'C',0,0,NULL,'','日程管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0);
-INSERT INTO sys_menu (menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
-                                                                                                                                                                                   ('技能组管理',3,8,'/skillGroupManagement',NULL,1,'C',0,0,NULL,'','技能组管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('新增用户',100,1,'#',NULL,1,'F',0,0,'system:user:add','','新增用户按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('修改用户',100,2,'#',NULL,1,'F',0,0,'system:user:edit','','修改用户按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('修改密码',100,3,'#',NULL,1,'F',0,0,'system:user:editPassWord','','修改密码按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('删除用户',100,4,'#',NULL,1,'F',0,0,'system:user:delete','','删除用户按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('用户详情',100,5,'#',NULL,1,'F',0,0,'system:user:get','','用户详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('用户列表',100,6,'#',NULL,1,'F',0,0,'system:user:list','','用户列表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('新增角色',101,1,'#',NULL,1,'F',0,0,'system:role:add','','新增角色按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('修改角色',101,2,'#',NULL,1,'F',0,0,'system:role:edit','','修改角色按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('角色详情',101,3,'#',NULL,1,'F',0,0,'system:role:get','','角色详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0);
-INSERT INTO sys_menu (menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
-                                                                                                                                                                                   ('删除角色',101,3,'#',NULL,1,'F',0,0,'system:role:delete','','删除角色按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('角色列表',101,4,'#',NULL,1,'F',0,0,'system:role:list','','角色列表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('新增菜单',102,1,'#',NULL,1,'F',0,0,'system:menu:add','','新增菜单按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('修改菜单',102,2,'#',NULL,1,'F',0,0,'system:menu:edit','','修改菜单按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('菜单详情',102,3,'#',NULL,1,'F',0,0,'system:menu:get','','菜单详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('删除菜单',102,4,'#',NULL,1,'F',0,0,'system:menu:delete','','删除菜单按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('菜单列表',102,5,'#',NULL,1,'F',0,0,'system:menu:list','','菜单列表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('日志列表',103,1,'#',NULL,1,'F',0,0,'system:log:list','','日志列表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('删除日志',103,2,'#',NULL,1,'F',0,0,'system:log:delete','','删除日志按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('清空日志',103,3,'#',NULL,1,'F',0,0,'system:log:empty','','清空日志按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0);
-INSERT INTO sys_menu (menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
-                                                                                                                                                                                   ('新增FS配置',200,1,'#',NULL,1,'F',0,0,'system:fs:add','','新增fs配置按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('修改FS配置',200,2,'#',NULL,1,'F',0,0,'system:fs:edit','','修改fs配置按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('fs配置详情',200,3,'#',NULL,1,'F',0,0,'system:fs:get','','fs配置详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('删除fs配置',200,4,'#',NULL,1,'F',0,0,'system:fs:delete','','删除fs配置按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('fs配置列表(分页)',200,5,'#',NULL,1,'F',0,0,'system:fs:page:list','','fs配置列表(分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('fs配置列表(不分页)',200,6,'#',NULL,1,'F',0,0,'system:fs:list','','fs配置列表(不分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('新增FS模块',201,1,'#',NULL,1,'F',0,0,'system:fs:modules:add','','新增FS模块按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('修改FS模块',201,2,'#',NULL,1,'F',0,0,'system:fs:modules:edit','','修改FS模块按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('FS模块详情',201,3,'#',NULL,1,'F',0,0,'system:fs:modules:get','','FS模块详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('删除FS模块',201,4,'#',NULL,1,'F',0,0,'system:fs:modules:delete','','删除FS模块按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0);
-INSERT INTO sys_menu (menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
-                                                                                                                                                                                   ('FS模块配置列表(分页)',201,5,'#',NULL,1,'F',0,0,'system:fs:modules:page:list','','FS模块配置列表(分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('FS模块配置列表(不分页)',201,6,'#',NULL,1,'F',0,0,'system:fs:modules:list','','FS模块配置列表(不分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('新增FS网关',202,1,'#',NULL,1,'F',0,0,'system:fs:gateway:add','','新增FS网关按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('修改FS网关',202,2,'#',NULL,1,'F',0,0,'system:fs:gateway:edit','','修改FS网关按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('FS网关详情',202,3,'#',NULL,1,'F',0,0,'system:fs:gateway:get','','FS网关详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('删除FS网关',202,4,'#',NULL,1,'F',0,0,'system:fs:gateway:delete','','删除FS网关按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('FS网关列表(分页)',202,5,'#',NULL,1,'F',0,0,'system:fs:gateway:page:list','','FS网关列表(分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('FS网关列表(不分页)',202,6,'#',NULL,1,'F',0,0,'system:fs:gateway:list','','FS网关列表(不分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('新增acl规则表',203,1,'#',NULL,1,'F',0,0,'system:acl:table:add','','新增acl规则表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('新增acl规则',203,2,'#',NULL,1,'F',0,0,'system:acl:node:add','','新增acl规则按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0);
-INSERT INTO sys_menu (menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
-                                                                                                                                                                                   ('修改acl规则表',203,3,'#',NULL,1,'F',0,0,'system:acl:list:edit','','修改acl规则表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('修改acl规则',203,4,'#',NULL,1,'F',0,0,'system:acl:node:edit','','修改acl规则按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('acl规则详情',203,5,'#',NULL,1,'F',0,0,'system:acl:get','','acl规则详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('删除acl',203,6,'#',NULL,1,'F',0,0,'system:acl:delete','','删除acl按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('acl列表(分页)',203,7,'#',NULL,1,'F',0,0,'system:acl:page:list','','acl列表(分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('acl列表不分页)',203,8,'#',NULL,1,'F',0,0,'system:acl:list','','acl列表(不分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('新增拨号计划',204,1,'#',NULL,1,'F',0,0,'system:dialplan:add','','新增拨号计划按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('修改拨号计划',204,2,'#',NULL,1,'F',0,0,'system:dialplan:edit','','修改拨号计划按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('拨号计划详情',204,3,'#',NULL,1,'F',0,0,'system:dialplan:get','','拨号计划详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('删除拨号计划',204,4,'#',NULL,1,'F',0,0,'system:dialplan:delete','','删除拨号计划按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0);
-INSERT INTO sys_menu (menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
-                                                                                                                                                                                   ('拨号计划列表(分页)',204,5,'#',NULL,1,'F',0,0,'system:dialplan:page:list','','拨号计划列表(分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('拨号计划列表(不分页)',204,6,'#',NULL,1,'F',0,0,'system:dialplan:list','','拨号计划列表(不分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('新增坐席',300,1,'#',NULL,1,'F',0,0,'system:agent:add','','新增坐席按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('修改坐席',300,2,'#',NULL,1,'F',0,0,'system:agent:edit','','修改坐席按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('删除坐席',300,3,'#',NULL,1,'F',0,0,'system:agent:delete','','删除坐席按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('坐席详情',300,4,'#',NULL,1,'F',0,0,'system:agent:get','','坐席详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('坐席列表',300,5,'#',NULL,1,'F',0,0,'system:agent:page:list','','坐席列表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('坐席签入',300,6,'#',NULL,1,'F',0,0,'system:agent:check:in','','坐席签入按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('坐席签出',300,7,'#',NULL,1,'F',0,0,'system:agent:check:out','','坐席签出按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('坐席忙碌',300,8,'#',NULL,1,'F',0,0,'system:agent:check:busy','','坐席忙碌按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0);
-INSERT INTO sys_menu (menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
-                                                                                                                                                                                   ('坐席通话中',300,9,'#',NULL,1,'F',0,0,'system:agent:check:calling','','坐席通话中按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                                   ('清空日志',103,3,'#',NULL,1,'F',0,0,'system:log:empty','','清空日志按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
-                                                                                                                                                                          ('IVR管理',3,9,'/IVRManagement','',1,'C',0,0,'','#','',1,'2025-01-14 14:12:41.0',1,'2025-01-14 14:12:41.0',0);
-INSERT INTO sys_menu (menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
-                                                                                                                                                                                               ('AI引擎管理',3,10,'/aiEngineManagement','',1,'C',0,0,'','#','',1,'2025-03-14 16:03:01',1,'2025-03-14 16:03:01',0),
-                                                                                                                                                                                               ('任务管理',4,1,'/callTaskManagement','',1,'C',0,0,'','#','',1,'2025-03-14 16:03:01',NULL,NULL,0),
-                                                                                                                                                                                               ('客户模板',4,2,'/custoemrTemplateManagement','',1,'C',0,0,'','#','',1,'2025-03-14 16:03:01',NULL,NULL,0),
-                                                                                                                                                                                               ('客户字段',4,3,'/customerFieldManagement','',1,'C',0,0,'','#','',1,'2025-03-14 16:03:01',NULL,NULL,0),
-                                                                                                                                                                                               ('客户公海',4,4,'/customerSeasManagement','',1,'C',0,0,'','#','',1,'2025-03-14 16:03:01',NULL,NULL,0),
-                                                                                                                                                                                               ('客户人群',4,5,'/customerCrowdManagement','',1,'C',0,0,'','#','',1,'2025-03-14 16:03:01',NULL,NULL,0);
+-- 菜单种子。menu_id 必须显式指定且与 parent_id 引用保持一致：
+-- 编号约定：M 目录 1-99；C 页面 = 目录号*100+序号；F 按钮 = 页面 id*100+序号。
+-- 历史教训：曾省略 menu_id 依赖 AUTO_INCREMENT（当时起点 1092），导致 id 漂移、
+-- parent_id 全部失联，后端 TreeUtil 丢弃所有孤儿子菜单，侧边栏只剩一级空目录。
+-- 注：「企业管理」菜单已移除——当前前端没有对应页面/路由，点了无法跳转；
+--     前端补上页面后可按 (104,'企业管理',1,5,...) 加回。
+INSERT INTO sys_menu (menu_id,menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
+(1,'系统管理',0,1,'#',NULL,1,'M',0,0,NULL,'AppstoreOutlined','系统管理目录',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(2,'FS配置管理',0,2,'#',NULL,1,'M',0,0,NULL,'ControlOutlined','FS配置管理目录',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(3,'呼叫管理',0,3,'#',NULL,1,'M',0,0,NULL,'PhoneOutlined','呼叫管理目录',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(4,'任务管理',0,4,'#',NULL,1,'M',0,0,NULL,'UnorderedListOutlined','任务管理目录',1,'2025-03-14 16:03:01',NULL,NULL,0);
+
+INSERT INTO sys_menu (menu_id,menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
+(100,'用户管理',1,1,'/userManagement',NULL,1,'C',0,0,NULL,'','用户管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(101,'角色管理',1,2,'/roleManagement',NULL,1,'C',0,0,NULL,'','角色管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(102,'菜单管理',1,3,'/menuManagement',NULL,1,'C',0,0,NULL,'','菜单管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(103,'日志管理',1,4,'/logManagement',NULL,1,'C',0,0,NULL,'','日志管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(200,'FS配置管理',2,1,'/fsConfigureManagement',NULL,1,'C',0,0,NULL,'','fs配置管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(201,'FS模块配置管理',2,2,'/fsModuleConfigureManagement',NULL,1,'C',0,0,NULL,'','FS模块配置管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(202,'FS网关管理',2,3,'/gatewayManagement',NULL,1,'C',0,0,NULL,'','FS网关管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(203,'FS访问控制管理',2,4,'/accessControl',NULL,1,'C',0,0,NULL,'','FS访问控制管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(204,'FS拨号计划管理',2,5,'/dialPlanManagement',NULL,1,'C',0,0,NULL,'','FS拨号计划管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(300,'坐席管理',3,1,'/agentManagement',NULL,1,'C',0,0,NULL,'','坐席管理菜单',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(301,'号码路由管理',3,2,'/phoneNumberRoute',NULL,1,'C',0,0,NULL,'','号码路由管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(302,'SIP号码管理',3,3,'/sipPhoneNumber',NULL,1,'C',0,0,NULL,'','SIP号码管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(303,'号码池管理',3,4,'/phonePool',NULL,1,'C',0,0,NULL,'','号码池管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(304,'号码管理',3,5,'/phoneNumber',NULL,1,'C',0,0,NULL,'','号码管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(305,'语音文件管理',3,6,'/voiceFile',NULL,1,'C',0,0,NULL,'','语音文件管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(306,'日程管理',3,7,'/scheduleManagement',NULL,1,'C',0,0,NULL,'','日程管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(307,'技能组管理',3,8,'/skillGroupManagement',NULL,1,'C',0,0,NULL,'','技能组管理',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(308,'IVR管理',3,9,'/ivrManagement','',1,'C',0,0,'','#','IVR管理菜单（注意：前端路由是小写 /ivrManagement）',1,'2025-01-14 14:12:41.0',1,'2025-01-14 14:12:41.0',0),
+(309,'AI引擎管理',3,10,'/aiEngineManagement','',1,'C',0,0,'','#','AI引擎管理菜单',1,'2025-03-14 16:03:01',1,'2025-03-14 16:03:01',0),
+(310,'呼叫记录',3,11,'/callRecordManagement','',1,'C',0,0,'','#','呼叫记录菜单',1,'2025-03-14 16:03:01',NULL,NULL,0),
+-- 以下 4 个菜单暂不启用（2026-08 实测）：后端没有对应接口（/intent/v1、/ai/engine/v1、/knowledge/v1 均 404），
+-- 且 knowledge/robot 页面组件是空壳（无 <template>，Vite 编译 500，点击菜单无法跳转）。
+-- 后端补齐接口后按下面格式加回即可：
+-- (311,'意图管理',3,12,'/intentManagement','',1,'C',0,0,'','#','',1,'2025-03-14 16:03:01',NULL,NULL,0),
+-- (312,'大模型引擎管理',3,13,'/modelEngineManagement','',1,'C',0,0,'','#','',1,'2025-03-14 16:03:01',NULL,NULL,0),
+-- (313,'知识库管理',3,14,'/knowledgeManagement','',1,'C',0,0,'','#','',1,'2025-03-14 16:03:01',NULL,NULL,0),
+-- (314,'机器人管理',3,15,'/robotManagement','',1,'C',0,0,'','#','',1,'2025-03-14 16:03:01',NULL,NULL,0),
+(400,'任务管理',4,1,'/callTaskManagement','',1,'C',0,0,'','#','任务管理菜单',1,'2025-03-14 16:03:01',NULL,NULL,0),
+(401,'客户模板',4,2,'/custoemrTemplateManagement','',1,'C',0,0,'','#','客户模板菜单（路径拼写与前端路由保持一致，勿单独改）',1,'2025-03-14 16:03:01',NULL,NULL,0),
+(402,'客户字段',4,3,'/customerFieldManagement','',1,'C',0,0,'','#','客户字段菜单',1,'2025-03-14 16:03:01',NULL,NULL,0),
+(403,'客户公海',4,4,'/customerSeasManagement','',1,'C',0,0,'','#','客户公海菜单',1,'2025-03-14 16:03:01',NULL,NULL,0),
+(404,'客户人群',4,5,'/customerCrowdManagement','',1,'C',0,0,'','#','客户人群菜单',1,'2025-03-14 16:03:01',NULL,NULL,0);
+
+INSERT INTO sys_menu (menu_id,menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
+(10001,'新增用户',100,1,'#',NULL,1,'F',0,0,'system:user:add','','新增用户按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10002,'修改用户',100,2,'#',NULL,1,'F',0,0,'system:user:edit','','修改用户按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10003,'修改密码',100,3,'#',NULL,1,'F',0,0,'system:user:editPassWord','','修改密码按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10004,'删除用户',100,4,'#',NULL,1,'F',0,0,'system:user:delete','','删除用户按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10005,'用户详情',100,5,'#',NULL,1,'F',0,0,'system:user:get','','用户详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10006,'用户列表',100,6,'#',NULL,1,'F',0,0,'system:user:list','','用户列表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10101,'新增角色',101,1,'#',NULL,1,'F',0,0,'system:role:add','','新增角色按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10102,'修改角色',101,2,'#',NULL,1,'F',0,0,'system:role:edit','','修改角色按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10103,'角色详情',101,3,'#',NULL,1,'F',0,0,'system:role:get','','角色详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10104,'删除角色',101,4,'#',NULL,1,'F',0,0,'system:role:delete','','删除角色按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10105,'角色列表',101,5,'#',NULL,1,'F',0,0,'system:role:list','','角色列表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10201,'新增菜单',102,1,'#',NULL,1,'F',0,0,'system:menu:add','','新增菜单按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10202,'修改菜单',102,2,'#',NULL,1,'F',0,0,'system:menu:edit','','修改菜单按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10203,'菜单详情',102,3,'#',NULL,1,'F',0,0,'system:menu:get','','菜单详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10204,'删除菜单',102,4,'#',NULL,1,'F',0,0,'system:menu:delete','','删除菜单按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10205,'菜单列表',102,5,'#',NULL,1,'F',0,0,'system:menu:list','','菜单列表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10301,'日志列表',103,1,'#',NULL,1,'F',0,0,'system:log:list','','日志列表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10302,'删除日志',103,2,'#',NULL,1,'F',0,0,'system:log:delete','','删除日志按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(10303,'清空日志',103,3,'#',NULL,1,'F',0,0,'system:log:empty','','清空日志按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0);
+
+INSERT INTO sys_menu (menu_id,menu_name,parent_id,order_num,`path`,component,is_frame,menu_type,visible,status,perms,icon,remark,create_by,create_time,update_by,update_time,del_flag) VALUES
+(20001,'新增FS配置',200,1,'#',NULL,1,'F',0,0,'system:fs:add','','新增fs配置按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20002,'修改FS配置',200,2,'#',NULL,1,'F',0,0,'system:fs:edit','','修改fs配置按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20003,'fs配置详情',200,3,'#',NULL,1,'F',0,0,'system:fs:get','','fs配置详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20004,'删除fs配置',200,4,'#',NULL,1,'F',0,0,'system:fs:delete','','删除fs配置按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20005,'fs配置列表(分页)',200,5,'#',NULL,1,'F',0,0,'system:fs:page:list','','fs配置列表(分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20006,'fs配置列表(不分页)',200,6,'#',NULL,1,'F',0,0,'system:fs:list','','fs配置列表(不分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20101,'新增FS模块',201,1,'#',NULL,1,'F',0,0,'system:fs:modules:add','','新增FS模块按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20102,'修改FS模块',201,2,'#',NULL,1,'F',0,0,'system:fs:modules:edit','','修改FS模块按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20103,'FS模块详情',201,3,'#',NULL,1,'F',0,0,'system:fs:modules:get','','FS模块详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20104,'删除FS模块',201,4,'#',NULL,1,'F',0,0,'system:fs:modules:delete','','删除FS模块按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20105,'FS模块配置列表(分页)',201,5,'#',NULL,1,'F',0,0,'system:fs:modules:page:list','','FS模块配置列表(分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20106,'FS模块配置列表(不分页)',201,6,'#',NULL,1,'F',0,0,'system:fs:modules:list','','FS模块配置列表(不分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20201,'新增FS网关',202,1,'#',NULL,1,'F',0,0,'system:fs:gateway:add','','新增FS网关按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20202,'修改FS网关',202,2,'#',NULL,1,'F',0,0,'system:fs:gateway:edit','','修改FS网关按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20203,'FS网关详情',202,3,'#',NULL,1,'F',0,0,'system:fs:gateway:get','','FS网关详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20204,'删除FS网关',202,4,'#',NULL,1,'F',0,0,'system:fs:gateway:delete','','删除FS网关按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20205,'FS网关列表(分页)',202,5,'#',NULL,1,'F',0,0,'system:fs:gateway:page:list','','FS网关列表(分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20206,'FS网关列表(不分页)',202,6,'#',NULL,1,'F',0,0,'system:fs:gateway:list','','FS网关列表(不分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20301,'新增acl规则表',203,1,'#',NULL,1,'F',0,0,'system:acl:table:add','','新增acl规则表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20302,'新增acl规则',203,2,'#',NULL,1,'F',0,0,'system:acl:node:add','','新增acl规则按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20303,'修改acl规则表',203,3,'#',NULL,1,'F',0,0,'system:acl:list:edit','','修改acl规则表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20304,'修改acl规则',203,4,'#',NULL,1,'F',0,0,'system:acl:node:edit','','修改acl规则按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20305,'acl规则详情',203,5,'#',NULL,1,'F',0,0,'system:acl:get','','acl规则详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20306,'删除acl',203,6,'#',NULL,1,'F',0,0,'system:acl:delete','','删除acl按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20307,'acl列表(分页)',203,7,'#',NULL,1,'F',0,0,'system:acl:page:list','','acl列表(分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20308,'acl列表(不分页)',203,8,'#',NULL,1,'F',0,0,'system:acl:list','','acl列表(不分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20401,'新增拨号计划',204,1,'#',NULL,1,'F',0,0,'system:dialplan:add','','新增拨号计划按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20402,'修改拨号计划',204,2,'#',NULL,1,'F',0,0,'system:dialplan:edit','','修改拨号计划按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20403,'拨号计划详情',204,3,'#',NULL,1,'F',0,0,'system:dialplan:get','','拨号计划详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20404,'删除拨号计划',204,4,'#',NULL,1,'F',0,0,'system:dialplan:delete','','删除拨号计划按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20405,'拨号计划列表(分页)',204,5,'#',NULL,1,'F',0,0,'system:dialplan:page:list','','拨号计划列表(分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(20406,'拨号计划列表(不分页)',204,6,'#',NULL,1,'F',0,0,'system:dialplan:list','','拨号计划列表(不分页)按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(30001,'新增坐席',300,1,'#',NULL,1,'F',0,0,'system:agent:add','','新增坐席按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(30002,'修改坐席',300,2,'#',NULL,1,'F',0,0,'system:agent:edit','','修改坐席按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(30003,'删除坐席',300,3,'#',NULL,1,'F',0,0,'system:agent:delete','','删除坐席按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(30004,'坐席详情',300,4,'#',NULL,1,'F',0,0,'system:agent:get','','坐席详情按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(30005,'坐席列表',300,5,'#',NULL,1,'F',0,0,'system:agent:page:list','','坐席列表按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(30006,'坐席签入',300,6,'#',NULL,1,'F',0,0,'system:agent:check:in','','坐席签入按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(30007,'坐席签出',300,7,'#',NULL,1,'F',0,0,'system:agent:check:out','','坐席签出按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(30008,'坐席忙碌',300,8,'#',NULL,1,'F',0,0,'system:agent:check:busy','','坐席忙碌按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0),
+(30009,'坐席通话中',300,9,'#',NULL,1,'F',0,0,'system:agent:check:calling','','坐席通话中按钮',1,'2024-07-15 10:43:17.0',NULL,NULL,0);
 
 
 INSERT INTO version(id, table_name, table_version)VALUES(1, 'ko_location', 9);

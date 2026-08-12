@@ -1,3 +1,7 @@
+-- 勿删：mysql Docker entrypoint 以 latin1 客户端字符集导入 init 脚本，
+-- 不先 SET NAMES utf8mb4 会把本文件的 UTF-8 中文双重编码成乱码。
+SET NAMES utf8mb4;
+
 /*
  Navicat Premium Data Transfer
 

@@ -1,0 +1,17 @@
+.git
+.gitignore
+# 上游损坏文件：引用 och-call-task 的服务但 och-esl 无该依赖（会成环），
+# 且 ICallStatusService 已被上游删除，导致 och-esl 编译失败。排除后缺失预测式外呼路由。
+och-esl/src/main/java/com/och/esl/handler/route/FsPredictiveDialingRouteHandler.java
+**/target
+doc
+*.jpg
+*.png
+*.mp4
+deploy
+.env
+.idea
+*.iml
+CLAUDE.md
+README.md
+docker-compose.yml
