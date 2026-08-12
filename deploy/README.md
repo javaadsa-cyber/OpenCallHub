@@ -104,3 +104,26 @@ nc -vz 127.0.0.1 1544 && nc -vzu 127.0.0.1 7010
 之后用软电话注册 `<宿主机IP>:5060`（1000/1234、1001/1234）互拨一路，观察 och-api 日志收到
 呼叫事件；端到端流程（软电话注册 → 呼叫 → 路由 → ESL 下发）走通即部署成功。
 录音文件在 `och-record` 卷（`docker compose exec och-api ls /record`）。
+
+## 运维脚本
+
+`deploy/scripts/` 从上游 `refactoring` 分支移植过来的一套运维工具（2026-08-12），
+默认都通过 `docker compose exec` 操作容器内进程，**宿主机零依赖**。
+
+| 脚本 | 作用 | 典型用法 |
+|---|---|---|
+| `backup-mysql.sh` | MySQL 逻辑备份（single-transaction + routines + triggers）→ gzip，保留 30 天 | `bash deploy/scripts/backup-mysql.sh`，产物在 `data/backups/` |
+| `restore-mysql.sh` | 解压并灌回 `openCallHub`（交互式确认） | `bash deploy/scripts/restore-mysql.sh data/backups/xxx.sql.gz` |
+| `health-check.sh` | 5 项探针：MySQL / Redis / FreeSWITCH / och-api(4320) / och-mrcp(7010)；✅/❌ 列表，exit 0/1 | `bash deploy/scripts/health-check.sh` |
+| `failure-drill.md` | 6 个故障演练场景（停 mysql / fs / redis / api / mrcp / 删卷）的预期行为与恢复步骤 | 通读 → 按场景手动演练 |
+
+定时备份示例（宿主机 crontab）：
+```
+0 2 * * * cd /path/to/OpenCallHub && bash deploy/scripts/backup-mysql.sh >> /var/log/och-backup.log 2>&1
+```
+
+若 MySQL 不在本 compose 栈内（外部 DB），用 env 切到 host 模式：
+```bash
+OCH_DB_MODE=host MYSQL_HOST=10.0.0.5 MYSQL_PORT=3306 MYSQL_PASSWORD=xxx \
+  bash deploy/scripts/backup-mysql.sh
+```

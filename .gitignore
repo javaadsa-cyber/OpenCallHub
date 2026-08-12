@@ -42,3 +42,6 @@ deploy/freeswitch/src/
 
 ### SIPp 测试容器源码（fetch-sipp-sources.sh 抓取，勿提交）###
 deploy/freeswitch/test/src/
+
+### 运维脚本产物（备份文件，勿提交）###
+data/
