@@ -42,6 +42,37 @@ VALUES
  '本地分机互拨（default）', 1, NOW(), 0);
 
 -- ============================================================
+-- ACL 种子：acl.conf 也走 xml_curl（FsAclXmlCurlHandler 读 fs_acl 表）。
+-- 表为空时 FS 拿到的 network-lists 是空的，deploy/freeswitch/autoload_configs/
+-- 里的静态 acl.conf.xml 只在 och-api 不可达时兜底，必须种这两个 list：
+--   esl_clients : event_socket.conf.xml 的 apply-inbound-acl 引用，
+--                 放行 loopback + RFC1918（fs_cli 健康检查与 och-api ESL）
+--   domains     : 动态 sofia internal profile 的 apply-inbound-acl 引用。
+--     注意 domain= 节点的真实语义（见 FS 源码 switch_core.c
+--     switch_load_network_lists）：加载时展开为 directory 里带 cidr=
+--     属性的用户，并不是"放行已注册来源 IP"。本地 directory 用户没有
+--     cidr 属性，所以必须直接种 RFC1918 cidr 节点放行容器网段的
+--     INVITE；否则 auth-calls=true 下 INVITE 会被 407 质询
+--     （REGISTER 有 digest 兜底不受影响）。domain 节点保留，
+--     与上游/静态配置对齐。
+-- fs_acl 为自连接结构：list_id=0 的行是 list 本身，其余行是 node（list_id 指向 list 行 id）。
+-- ============================================================
+INSERT INTO fs_acl
+(`id`, `name`, `default_type`, `list_id`, `node_type`, `cidr`, `domain`, `create_by`, `create_time`, `del_flag`)
+VALUES
+(1, 'esl_clients', 'deny', 0, NULL,      NULL,            NULL,        1, NOW(), 0),
+(2, NULL,          NULL,   1, 'allow',   '127.0.0.0/8',   NULL,        1, NOW(), 0),
+(3, NULL,          NULL,   1, 'allow',   '::1/128',       NULL,        1, NOW(), 0),
+(4, NULL,          NULL,   1, 'allow',   '10.0.0.0/8',    NULL,        1, NOW(), 0),
+(5, NULL,          NULL,   1, 'allow',   '172.16.0.0/12', NULL,        1, NOW(), 0),
+(6, NULL,          NULL,   1, 'allow',   '192.168.0.0/16',NULL,        1, NOW(), 0),
+(7, 'domains',     'deny', 0, NULL,      NULL,            NULL,        1, NOW(), 0),
+(8, NULL,          NULL,   7, 'allow',   NULL,            '$${domain}',1, NOW(), 0),
+(9, NULL,          NULL,   7, 'allow',   '10.0.0.0/8',    NULL,        1, NOW(), 0),
+(10, NULL,         NULL,   7, 'allow',   '172.16.0.0/12', NULL,        1, NOW(), 0),
+(11, NULL,         NULL,   7, 'allow',   '192.168.0.0/16',NULL,        1, NOW(), 0);
+
+-- ============================================================
 -- 示例 SIP 坐席（可选）。agent_number 为 SIP 账号（1000/1001），
 -- user_id 直接挂到内置 admin(user_id=1) 仅为本地演示；
 -- 正式做法是登录管理后台创建用户后再开通坐席。

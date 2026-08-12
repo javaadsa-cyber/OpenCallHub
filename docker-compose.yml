@@ -136,6 +136,21 @@ services:
   # 可选：och-file-client 正常部署在 FreeSWITCH 主机上（本地回放录音文件），
   # 本地方案默认不启用；如需验证可照 och-api 的 build 方式自行添加。
 
+  # 仅测试用：SIPp（SIP/RTP 流量发生器），docker compose --profile test 激活。
+  # 无软电话自动化测试套件见 deploy/freeswitch/test/README.md
+  sipp:
+    build:
+      context: ./deploy/freeswitch/test   # 场景/脚本在 test/ 下，Dockerfile 里 COPY
+      dockerfile: sipp/Dockerfile
+    image: och-sipp:local
+    container_name: och-sipp
+    profiles: ["test"]
+    command: ["sleep", "infinity"]   # 常驻容器，测试脚本通过 docker compose exec 驱动
+    depends_on:
+      freeswitch:
+        condition: service_healthy
+    networks: [och]
+
 volumes:
   mysql-data:
   och-record:

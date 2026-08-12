@@ -94,11 +94,11 @@ docker compose logs och-api | grep -iE "Connect failed|fsClient" | tail
 docker compose logs och-api | grep "xmlCurl" | tail   # 应看到请求与返回的 XML
 
 # ③ FS 侧状态：internal profile 监听 5060
-docker compose exec freeswitch fs_cli -P ClueCon -x "sofia status profile internal" | head -15
+docker compose exec freeswitch fs_cli -p ClueCon -x "sofia status profile internal" | head -15
 
 # ④ 软电话互拨：两台软电话注册 <宿主机IP>:5060（UDP），
 #    账号 1000/1234 与 1001/1234；1000 拨 1001 → 振铃、接听、双向语音
-docker compose exec freeswitch fs_cli -P ClueCon -x "show channels"   # 通话中可见通道
+docker compose exec freeswitch fs_cli -p ClueCon -x "show channels"   # 通话中可见通道
 
 # ⑤ 话单入库（注意：mod_odbc_cdr/mod_xml_cdr 默认未加载，CDR 入库暂不可用，后续项）
 docker compose exec -T mysql mysql -uroot -p123456 -e "select count(*) from openCallHub.fs_cdr;"
@@ -106,6 +106,19 @@ docker compose exec -T mysql mysql -uroot -p123456 -e "select count(*) from open
 # ⑥ 录音文件（如呼叫开启录音）
 docker compose exec och-api ls -l /record
 ```
+
+### 自动化测试（无软电话）
+
+不想装软电话时，用 `deploy/freeswitch/test/` 的自动化套件覆盖 L3 的三层验证
+（冒烟 / dialplan+xml_curl 链路 / SIP 注册+互呼+RTP 媒体断言）：
+
+```bash
+docker compose up -d                      # 核心栈全部 healthy
+bash deploy/freeswitch/test/run-all.sh    # 三项全 PASS、退出码 0 即通过
+```
+
+首次运行会自动抓取 SIPp v3.7.7 源码并构建测试容器（compose profile `test`，
+不影响核心栈）。原理、已知局限与目录结构见 `deploy/freeswitch/test/README.md`。
 
 ## L4 语音识别/合成测试（需要阿里云 NLS 密钥）
 
@@ -132,7 +145,7 @@ docker compose exec och-api ls -l /record
 | 侧边栏只有一级目录、点开没有子菜单 | sys_menu 的 parent_id 与 menu_id 失联（种子省略 menu_id 被 AUTO_INCREMENT 漂移过）。校验：`SELECT count(*) FROM sys_menu m WHERE m.parent_id<>0 AND NOT EXISTS(SELECT 1 FROM sys_menu p WHERE p.menu_id=m.parent_id)` 应为 0。doc/system.sql 的种子必须显式写 menu_id |
 | 改了菜单但前端不生效 | 前端把菜单缓存在 localStorage `niubee-menus` 且旧版从不清除；重新登录一次即可（新版登录时会清缓存） |
 | 带 token 仍 401 | token 过期（720 分钟）或 Redis 被清空（会话存 Redis） |
-| 软电话注册失败 | 服务器地址要填**宿主机 IP**:5060（不是 127.0.0.1，除非软电话就在宿主机）；密码 1234（FS 内置 directory）；`docker compose exec freeswitch fs_cli -P ClueCon -x "sofia loglevel all 9"` 看 SIP 报文 |
+| 软电话注册失败 | 服务器地址要填**宿主机 IP**:5060（不是 127.0.0.1，除非软电话就在宿主机）；密码 1234（FS 内置 directory）；`docker compose exec freeswitch fs_cli -p ClueCon -x "sofia loglevel all 9"` 看 SIP 报文 |
 | ESL 一直 `Connect failed: xxx:8021` | fs_config 的 ip/密码错误、FS 未放行 8021、或容器到 FS 网络不通（容器化 FS 时 ip 应为服务名 freeswitch） |
 | FS 已启动但 ESL 仍不连（日志也无重试） | och-api 启动时连接失败会把 fs_config.status 自动置为 1（下线），之后不再重试。需到管理后台「FS配置」重新上线，或 `UPDATE openCallHub.fs_config SET status=0` |
 | FS 呼叫时报 xml_curl 错误 | 密钥不一致或 FS 访问不到 4320；文档里的 8080 端口是过时的，实际 4320 |

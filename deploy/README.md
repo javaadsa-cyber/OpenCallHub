@@ -33,7 +33,7 @@ docker compose ps         # mysql/redis/freeswitch/och-api 应 healthy，och-mrc
 | 服务 | 端口 | 说明 |
 |---|---|---|
 | freeswitch | 5060 (udp+tcp) | SIP internal profile（软电话注册） |
-| freeswitch | 8021 | ESL inbound，密码 ClueCon（宿主机 `fs_cli -p 8021 -P ClueCon` 调试） |
+| freeswitch | 8021 | ESL inbound，密码 ClueCon（宿主机 `fs_cli -H 127.0.0.1 -P 8021 -p ClueCon` 调试；注意 `-p`=密码 `-P`=端口） |
 | freeswitch | 20000-20199/udp | RTP 媒体段（收窄配置见 switch.conf.xml） |
 | och-api | 4320 | HTTP / Swagger (`/swagger-ui.html`) / Druid (`/druid/`，admin/admin123) / FS xml_curl (`/fs/curl/api`) |
 | och-api | 9527 | 内嵌 Netty 文件服务 |
@@ -42,6 +42,7 @@ docker compose ps         # mysql/redis/freeswitch/och-api 应 healthy，och-mrc
 | och-mrcp | 10000-20000/udp | RTP 媒体端口段（host 网络） |
 | mysql | 3306 | 已发布到宿主机，方便 IDE 调试（可删） |
 | redis | 6379 | 密码固定 `123456`（och-mrcp 硬编码约束，**勿改**） |
+| sipp | 无 | 仅测试用（profiles: `test`，`docker compose --profile test` 激活）：SIPp 无软电话自动化测试，见 `deploy/freeswitch/test/README.md` |
 
 管理后台账号：`admin / 12345678`（system.sql 种子）。
 
@@ -88,7 +89,7 @@ docker compose exec mysql mysql -uroot -p123456 -e "show tables in openCallHub;"
 docker compose exec mysql mysql -uroot -p123456 -e "select * from openCallHub.fs_config;"
 
 # freeswitch
-docker compose exec freeswitch fs_cli -P ClueCon -x "sofia status profile internal" | grep -E "5060|REG"
+docker compose exec freeswitch fs_cli -p ClueCon -x "sofia status profile internal" | grep -E "5060|REG"
 docker compose logs och-api | grep -iE "Connect failed"   # 应为空（ESL 已连上）
 
 # och-api

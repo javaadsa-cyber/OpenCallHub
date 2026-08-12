@@ -11,9 +11,14 @@
       <node type="allow" cidr="172.16.0.0/12"/>
       <node type="allow" cidr="192.168.0.0/16"/>
     </list>
-    <!-- 保留 vanilla 的 domains（directory 中 cidr= 属性会用到） -->
+    <!-- domains：sofia internal profile 的 apply-inbound-acl 引用（INVITE 准入）。
+         domain= 节点只会展开 directory 中带 cidr= 属性的用户（本地 directory
+         没有），故与 fs_acl 种子一致，直接放行 RFC1918 容器网段。 -->
     <list name="domains" default="deny">
       <node type="allow" domain="$${domain}"/>
+      <node type="allow" cidr="10.0.0.0/8"/>
+      <node type="allow" cidr="172.16.0.0/12"/>
+      <node type="allow" cidr="192.168.0.0/16"/>
     </list>
   </network-lists>
 </configuration>

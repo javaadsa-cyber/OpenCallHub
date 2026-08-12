@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE scenario SYSTEM "sipp.dtd">
+<!-- UAC 1000 呼叫 1001：
+     - SIPp 默认不发任何 RTP（含静音），ACK 后用 rtp_stream 显式放 440Hz μ-law 音调
+       （裸采样文件，构建期由 gen-tone.py 生成），宿主机侧 uuid_record 录音做媒体断言。
+     - pause 15s 是留给宿主机录音的时间窗，BYE 不能抢在录音完成前发出。
+     - 不带 auth 分支的前提：fs_acl 种子里 domains 列表放行了 RFC1918
+       （domain= 节点只展开 directory 中带 cidr= 属性的用户，本地不适用，
+       见 02-seed.sql 注释）。若环境变化出现 401/407，参考 register 场景
+       补充 [authentication] 分支。 -->
+<scenario name="UAC 1000 call 1001">
+  <send retrans="500">
+    <![CDATA[
+      INVITE sip:1001@[remote_ip]:[remote_port] SIP/2.0
+      Via: SIP/2.0/[transport] [local_ip]:[local_port];branch=[branch]
+      From: <sip:1000@[remote_ip]>;tag=[pid]SIPpTag02[call_number]
+      To: <sip:1001@[remote_ip]>
+      Call-ID: [call_id]
+      CSeq: 1 INVITE
+      Contact: <sip:1000@[local_ip]:[local_port]>
+      Max-Forwards: 70
+      User-Agent: SIPp/och-test
+      Content-Type: application/sdp
+      Content-Length: [len]
+
+      v=0
+      o=user1 53655765 2353687637 IN IP[local_ip_type] [local_ip]
+      s=-
+      c=IN IP[local_ip_type] [local_ip]
+      t=0 0
+      m=audio [auto_media_port] RTP/AVP 0
+      a=rtpmap:0 PCMU/8000
+    ]]>
+  </send>
+
+  <recv response="100" optional="true"/>
+  <recv response="180" optional="true"/>
+  <recv response="200" rrs="true"/>
+
+  <send>
+    <![CDATA[
+      ACK sip:1001@[remote_ip]:[remote_port] SIP/2.0
+      [last_Via:]
+      [last_From:]
+      [last_To:]
+      [last_Call-ID:]
+      CSeq: 1 ACK
+      Contact: <sip:1000@[local_ip]:[local_port]>
+      Max-Forwards: 70
+      [routes]
+      Content-Length: 0
+    ]]>
+  </send>
+
+  <!-- 开始放流：-1 = 无限循环，payload type 0 = PCMU -->
+  <nop>
+    <action>
+      <exec rtp_stream="/opt/och-test/media/tone_pcmu.raw,-1,0,PCMU/8000"/>
+    </action>
+  </nop>
+
+  <pause milliseconds="15000"/>
+
+  <send retrans="500">
+    <![CDATA[
+      BYE sip:1001@[remote_ip]:[remote_port] SIP/2.0
+      [last_Via:]
+      [last_From:]
+      [last_To:]
+      [last_Call-ID:]
+      CSeq: 2 BYE
+      Contact: <sip:1000@[local_ip]:[local_port]>
+      Max-Forwards: 70
+      [routes]
+      Content-Length: 0
+    ]]>
+  </send>
+  <recv response="200" crlf="true"/>
+</scenario>

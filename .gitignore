@@ -39,3 +39,6 @@ build/
 
 ### FS 构建源码（fetch-sources.sh 抓取，约 170MB，勿提交）###
 deploy/freeswitch/src/
+
+### SIPp 测试容器源码（fetch-sipp-sources.sh 抓取，勿提交）###
+deploy/freeswitch/test/src/
