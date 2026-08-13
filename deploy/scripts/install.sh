@@ -35,6 +35,7 @@ OCH_HOST_IP=""
 INSTALL_DIR="$(pwd)"
 MYSQL_PASSWORD="123456"
 NON_INTERACTIVE=false
+SKIP_BUILD=false
 
 # 颜色
 RED='\033[0;31m'
@@ -140,6 +141,102 @@ configure_logrotate() {
 }
 EOF
     log_ok "日志轮转配置完成"
+}
+
+# ----------------------------------------------------------------------------
+# 镜像管理：已存在则跳过下载
+# ----------------------------------------------------------------------------
+
+# 检查镜像是否已存在本地
+image_exists() {
+    docker image inspect "$1" &>/dev/null
+}
+
+# 拉取镜像（仅在缺失时下载，已存在则跳过）
+pull_image_if_missing() {
+    local image="$1"
+    if image_exists "$image"; then
+        log_ok "镜像已缓存，跳过下载: $image"
+    else
+        log_info "拉取镜像: $image ..."
+        docker pull "$image"
+    fi
+}
+
+# 预拉取基础镜像（仅缺失的），避免构建阶段重复下载
+preload_base_images() {
+    log_step "预检 Docker 镜像（已存在则跳过下载）"
+
+    # 中间件 + 构建/运行时基础镜像
+    local images=(
+        "mysql:8.0"                       # 中间件
+        "redis:7-alpine"                  # 中间件
+        "maven:3.9-eclipse-temurin-17"    # 后端构建阶段
+        "eclipse-temurin:17-jre"          # 后端运行时阶段
+        "debian:bookworm"                 # FreeSWITCH 基础镜像
+    )
+
+    local cached=0
+    local pulled=0
+    for img in "${images[@]}"; do
+        if image_exists "$img"; then
+            log_ok "已缓存: $img"
+            cached=$((cached + 1))
+        else
+            log_info "缺失，拉取: $img ..."
+            if docker pull "$img"; then
+                pulled=$((pulled + 1))
+            else
+                log_warn "拉取失败（构建时会重试）: $img"
+            fi
+        fi
+    done
+
+    log_info "镜像预检完成: ${cached} 个已缓存 / ${pulled} 个新拉取"
+}
+
+# 检查服务镜像是否已构建（用于跳过 build 阶段）
+# 判定：对每个「需要 build」的服务（即 compose 里有 build: 上下文的服务），
+#       检查其本地镜像是否存在。全部存在才返回 0（可跳过构建）。
+# 镜像命名兼容：显式 image: 字段 / compose 默认 <project>-<service>:latest。
+service_images_built() {
+    cd "$INSTALL_DIR" || return 1
+
+    # 推导 compose project name：环境变量 > 目录名（小写、非字母数字字符去掉）
+    local project="${COMPOSE_PROJECT_NAME:-$(basename "$INSTALL_DIR")}"
+    project="${project,,}"
+    project="${project//[^a-z0-9]/}"
+
+    # 显式 image 名（mysql/redis/freeswitch 这类有 image: 字段的）
+    local explicit_images
+    explicit_images=$(docker compose config --images 2>/dev/null || true)
+
+    local svc found
+    while IFS= read -r svc; do
+        [[ -z "$svc" ]] && continue
+
+        # 中间件类（仅 image:，无 build）不算"需构建"，跳过
+        local svc_image
+        svc_image=$(echo "$explicit_images" | grep -E "(^|[-_/])${svc}(:|@|$)" | head -1 || true)
+
+        found=false
+        # 显式 image 存在？
+        if [[ -n "$svc_image" ]] && image_exists "${svc_image%@*}"; then
+            found=true
+        fi
+        # compose 默认命名存在？
+        if [[ "$found" == false ]]; then
+            for cand in "${project}-${svc}" "${project}-${svc}:latest" "${project}_${svc}" "${project}_${svc}:latest"; do
+                if image_exists "$cand"; then found=true; break; fi
+            done
+        fi
+
+        if [[ "$found" == false ]]; then
+            return 1   # 该服务镜像缺失 → 需要构建
+        fi
+    done < <(docker compose config --services 2>/dev/null)
+
+    return 0
 }
 
 # ----------------------------------------------------------------------------
@@ -349,33 +446,62 @@ collect_params() {
 # 阶段 3：构建后端
 # ----------------------------------------------------------------------------
 build_backend() {
-    log_step "阶段 3/5：构建后端（预计 15-25 分钟）"
+    log_step "阶段 3/5：构建后端"
 
     cd "$INSTALL_DIR"
 
-    # 拉取 FreeSWITCH 源码
-    if [[ ! -d "deploy/freeswitch/src/freeswitch" ]]; then
-        log_info "拉取 FreeSWITCH 源码（~170MB）..."
-        bash deploy/freeswitch/fetch-sources.sh
-    else
-        log_info "FreeSWITCH 源码已存在，跳过"
-    fi
-    log_ok "FreeSWITCH 源码就绪"
+    # 预检镜像：已存在的中间件/基础镜像跳过下载（省时）
+    preload_base_images
 
-    # 生成 .env
-    log_info "生成 .env 配置..."
-    cat > .env <<EOF
+    # 跳过构建：服务镜像已构建过时直接复用（最省时，FS 源码编译那段最久）
+    local need_build=true
+    if [[ "$SKIP_BUILD" == true ]]; then
+        log_info "--skip-build 已指定，跳过构建阶段"
+        need_build=false
+    elif service_images_built; then
+        log_ok "检测到服务镜像已构建，跳过构建阶段"
+        need_build=false
+        if [[ "$NON_INTERACTIVE" != true ]]; then
+            read -rp "$(echo -e "${BLUE}[?]${NC} 是否强制重新构建? [y/N]: ")" force_rebuild
+            [[ "${force_rebuild,,}" == "y" ]] && need_build=true
+        fi
+    fi
+
+    if [[ "$need_build" == true ]]; then
+        # 拉取 FreeSWITCH 源码（仅在缺失时）
+        if [[ ! -d "deploy/freeswitch/src/freeswitch" ]]; then
+            log_info "拉取 FreeSWITCH 源码（~170MB）..."
+            bash deploy/freeswitch/fetch-sources.sh
+        else
+            log_ok "FreeSWITCH 源码已存在，跳过"
+        fi
+
+        # 生成 .env
+        log_info "生成 .env 配置..."
+        cat > .env <<EOF
 # OpenCallHub 部署配置（由 install.sh 生成）
 MYSQL_ROOT_PASSWORD=$MYSQL_PASSWORD
 OCH_HOST_IP=$OCH_HOST_IP
 EOF
-    log_ok ".env 已生成"
+        log_ok ".env 已生成"
 
-    # 构建镜像
-    log_info "构建 Docker 镜像（首次约 15-25 分钟）..."
-    docker compose build
+        # 构建镜像（不传 --pull，强制使用本地已缓存的基础镜像）
+        log_info "构建 Docker 镜像（首次约 15-25 分钟，复用本地基础镜像）..."
+        log_info "如需更新基础镜像，单独运行: docker compose pull"
+        DOCKER_BUILDKIT=1 docker compose build
+    else
+        # 跳过构建时仍要确保 .env 存在（up 需要）
+        if [[ ! -f .env ]]; then
+            log_info "生成 .env 配置..."
+            cat > .env <<EOF
+MYSQL_ROOT_PASSWORD=$MYSQL_PASSWORD
+OCH_HOST_IP=$OCH_HOST_IP
+EOF
+        fi
+        log_ok "复用已构建镜像，跳过 build"
+    fi
 
-    # 启动服务
+    # 启动服务（up 会自动拉取缺失的 image: 字段镜像，已有则跳过）
     log_info "启动服务..."
     docker compose up -d
 
@@ -534,6 +660,10 @@ main() {
                 INSTALL_DIR="$2"
                 shift 2
                 ;;
+            --skip-build)
+                SKIP_BUILD=true
+                shift
+                ;;
             -h|--help)
                 echo "用法: sudo bash deploy/scripts/install.sh [选项]"
                 echo
@@ -541,6 +671,7 @@ main() {
                 echo "  --non-interactive        非交互模式（使用默认值或环境变量）"
                 echo "  --host-ip <IP>           宿主机对外 IP"
                 echo "  --install-dir <PATH>     代码目录（默认当前目录）"
+                echo "  --skip-build             跳过构建，复用已存在的服务镜像"
                 echo "  -h, --help               显示帮助"
                 echo
                 echo "注意:"
