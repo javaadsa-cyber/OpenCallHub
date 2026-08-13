@@ -8,6 +8,24 @@
 > Kamailio 不在 compose 内：SIP 注册直连 FS 内置 directory（1000~1019，密码 1234），无需 Kamailio。
 > 前端管理界面也不在仓库内（见根 README 的前端仓库链接），API 验证用 Swagger UI。
 
+## 一键安装（新服务器）
+
+`deploy/scripts/install.sh` 可在干净的 Linux 服务器上从零部署全套：
+
+```bash
+# 交互式
+sudo bash deploy/scripts/install.sh
+
+# 自动化
+sudo bash deploy/scripts/install.sh --non-interactive --host-ip 1.2.3.4 --domain call.example.com
+```
+
+脚本会自动：安装 Docker（如未装）→ 克隆仓库 → 构建后端 5 服务 → 构建前端 → 配置 nginx 反向代理 → 放行防火墙 → 打印访问地址。
+
+详见 `deploy/scripts/install.sh --help`。
+
+**以下"快速开始"章节面向本地开发场景；生产服务器请用上述一键脚本。**
+
 ## 前置条件
 
 - **Linux 宿主机**（och-mrcp 使用 host 网络，macOS/Windows 不支持，见文末降级路径）
@@ -201,6 +219,7 @@ nc -vz 127.0.0.1 1544 && nc -vzu 127.0.0.1 7010
 
 | 脚本 | 作用 | 典型用法 |
 |---|---|---|
+| `install.sh` | 一键安装：Docker + 后端 5 服务 + 前端 + nginx + 防火墙，支持交互/非交互模式 | `sudo bash deploy/scripts/install.sh` |
 | `backup-mysql.sh` | MySQL 逻辑备份（single-transaction + routines + triggers）→ gzip，保留 30 天 | `bash deploy/scripts/backup-mysql.sh`，产物在 `data/backups/` |
 | `restore-mysql.sh` | 解压并灌回 `openCallHub`（交互式确认） | `bash deploy/scripts/restore-mysql.sh data/backups/xxx.sql.gz` |
 | `health-check.sh` | 5 项探针：MySQL / Redis / FreeSWITCH / och-api(4320) / och-mrcp(7010)；✅/❌ 列表，exit 0/1 | `bash deploy/scripts/health-check.sh` |
