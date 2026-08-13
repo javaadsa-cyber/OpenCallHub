@@ -39,3 +39,42 @@ There are effectively no unit tests in the repo (only a stub context test) — d
 - Speech path: FreeSWITCH negotiates MRCP v2 with och-mrcp over SIP; och-mrcp decodes RTP audio and forwards to the configured cloud ASR/TTS engine.
 - Persistence: MyBatis-Plus + MySQL; Redis for cache/session; RabbitMQ for async tasks.
 - `doc/` contains ops material: FreeSWITCH/Kamailio setup guides, `kamailio.cfg`/`kamailio.lua`, and SQL schemas (`system.sql` is the main one).
+
+## Docker 部署
+
+`deploy/scripts/` 下提供三个脚本，覆盖从首次安装到日常运维：
+
+| 脚本 | 作用 |
+|---|---|
+| `install.sh` | 首次安装（装 Docker + 防火墙 + 全套构建），需要 sudo |
+| `deploy.sh` | 增量部署（代码更新后重建变更的服务），支持 `--all` / `--backup` / `--reset-network` 等选项 |
+| `health-check.sh` | 健康检查（MySQL/Redis/FS/och-api/och-mrcp 端口 + 端到端登录） |
+
+### 典型用法
+
+```bash
+# 首次部署
+sudo bash deploy/scripts/install.sh
+
+# 日常发版
+sudo bash deploy/scripts/deploy.sh                 # 默认更新 och-api + och-mrcp
+sudo bash deploy/scripts/deploy.sh --all           # 含 freeswitch（重新编译源码，慢）
+sudo bash deploy/scripts/deploy.sh --backup        # 先备份数据库再发布
+
+# 健康检查
+bash deploy/scripts/health-check.sh
+```
+
+### 网络孤儿故障
+
+症状：`och-api` 启动日志出现 `java.net.UnknownHostException: mysql`，但 `docker compose ps` 显示 mysql Up。
+
+原因：容器脱离了自定义网络 `och`（常见于非正常启停），Docker 内部 DNS 失效。`inspect` 其 `NetworkSettings.Networks` 字段为 `{}`。
+
+修复：
+
+```bash
+sudo bash deploy/scripts/deploy.sh --reset-network   # 不丢数据，仅重建容器和网络
+```
+
+常规 `deploy.sh` 流程结束时也会跑一次网络完整性检查，发现孤儿会在输出中提示。

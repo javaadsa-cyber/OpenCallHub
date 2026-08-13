@@ -226,6 +226,7 @@ nc -vz 127.0.0.1 1544 && nc -vzu 127.0.0.1 7010
 | 脚本 | 作用 | 典型用法 |
 |---|---|---|
 | `install.sh` | 后端一键部署：Docker + 5 服务 + 防火墙（不克隆代码，不管前端） | `sudo bash deploy/scripts/install.sh` |
+| `deploy.sh` | 增量部署：git pull + 重建变更服务 + 滚动重启 + 健康检查（不动 mysql/redis） | `sudo bash deploy/scripts/deploy.sh och-api` |
 | `backup-mysql.sh` | MySQL 逻辑备份（single-transaction + routines + triggers）→ gzip，保留 30 天 | `bash deploy/scripts/backup-mysql.sh`，产物在 `data/backups/` |
 | `restore-mysql.sh` | 解压并灌回 `openCallHub`（交互式确认） | `bash deploy/scripts/restore-mysql.sh data/backups/xxx.sql.gz` |
 | `health-check.sh` | 5 项探针：MySQL / Redis / FreeSWITCH / och-api(4320) / och-mrcp(7010)；✅/❌ 列表，exit 0/1 | `bash deploy/scripts/health-check.sh` |
