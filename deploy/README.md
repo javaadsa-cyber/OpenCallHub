@@ -52,15 +52,23 @@ docker compose ps         # mysql/redis/freeswitch/och-api 应 healthy，och-mrc
 软电话（Linphone 等）注册：**服务器 `<宿主机IP>:5060`（UDP），账号 1000，密码 1234**；
 再注册 1001，两者互拨即可通话（拨号计划种子见 `02-seed.sql`）。
 
+**Web 软电话**：前端通过 `GET /api/sip/config` 动态获取 WebSocket SIP 地址（无需硬编码）：
+```bash
+curl http://localhost:4320/api/sip/config
+# → {"wsUrl":"ws://<宿主机IP>:5066", "sipHost":"<宿主机IP>", "sipPort":5060}
+```
+修改 `sip_server_config` 表即可更新前端连接地址（管理后台或直接 SQL）。
+
 ## 服务与端口
 
 | 服务 | 端口 | 说明 |
 |---|---|---|
 | freeswitch | 5060 (udp+tcp) | SIP internal profile（软电话注册） |
+| freeswitch | 5066 (tcp) | SIP WebSocket（软电话 WS 注册，`ws://<host>:5066`） |
 | freeswitch | 5080 (udp+tcp) | SIP external profile（运营商 SIP trunk 入向/出向） |
 | freeswitch | 8021 | ESL inbound，密码 ClueCon（宿主机 `fs_cli -H 127.0.0.1 -P 8021 -p ClueCon` 调试；注意 `-p`=密码 `-P`=端口） |
 | freeswitch | 20000-20199/udp | RTP 媒体段（收窄配置见 switch.conf.xml） |
-| och-api | 4320 | HTTP / Swagger (`/swagger-ui.html`) / Druid (`/druid/`，admin/admin123) / FS xml_curl (`/fs/curl/api`) |
+| och-api | 4320 | HTTP / Swagger (`/swagger-ui.html`) / Druid (`/druid/`，admin/admin123) / FS xml_curl (`/fs/curl/api`) / SIP 配置 (`/api/sip/config`) |
 | och-api | 9527 | 内嵌 Netty 文件服务 |
 | och-mrcp | 7010 (udp+tcp) | SIP 信令（host 网络） |
 | och-mrcp | 1544 | MRCP v2（host 网络） |

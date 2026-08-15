@@ -146,3 +146,25 @@ VALUES
 (2, 'inbound-did-demo', 'xml', '^01012345678$', 'public',
  '<extension name="inbound-did-demo"><condition field="destination_number" expression="^01012345678$"><action application="answer"/><action application="set" data="call_direction=inbound"/><action application="bridge" data="user/1000@${domain}"/></condition></extension>',
  '运营商入向 DID 01012345678 → 坐席 1000（占位符，按真实 DID 改）', 1, NOW(), 0);
+
+-- ============================================================
+-- SIP 服务器动态配置（前端软电话通过 /api/sip/config 获取）
+-- 作用：前端启动时调用此 API 获取 WebSocket SIP 地址，避免硬编码。
+-- ws_url : 软电话 WebSocket 连接地址（浏览器用 ws:// 或 wss://）
+-- sip_host : SIP 域名/IP（用于 SIP Contact/Register 头）
+-- sip_port : SIP UDP 端口（internal profile，默认 5060）
+-- 注意：ws_url 中的 IP 必须是宿主机对外 IP，容器内 IP 浏览器无法直连。
+--       部署后请 UPDATE 为实际 IP。
+-- ============================================================
+CREATE TABLE IF NOT EXISTS sip_server_config (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `ws_url` VARCHAR(255) NOT NULL COMMENT 'WebSocket SIP 地址，如 ws://120.253.136.198:5066',
+  `sip_host` VARCHAR(255) NOT NULL COMMENT 'SIP 域名/IP，如 120.253.136.198',
+  `sip_port` INT NOT NULL DEFAULT 5060 COMMENT 'SIP UDP 端口',
+  `create_time` DATETIME DEFAULT NOW(),
+  `update_time` DATETIME DEFAULT NOW() ON UPDATE NOW(),
+  `del_flag` TINYINT DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='SIP 服务器配置（前端软电话动态获取）';
+
+INSERT INTO sip_server_config (`ws_url`, `sip_host`, `sip_port`)
+VALUES ('ws://120.253.136.198:5066', '120.253.136.198', 5060);
