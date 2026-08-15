@@ -97,4 +97,10 @@ public class FsSipGatewayAddQuery {
     @NotNull(message = "网关类型不能为空")
     @Schema(description = "网关类型 0-非外线 1-外线",requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer gatewayType;
+
+    /**
+     * 外呼前缀（如运营商接入码 9118）
+     */
+    @Schema(description = "外呼前缀（自动加在被叫号码前）")
+    private String outboundPrefix;
 }

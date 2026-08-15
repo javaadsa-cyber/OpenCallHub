@@ -120,10 +120,11 @@ curl http://localhost:4320/api/sip/config
 
 | 表 | 示例值 | 作用 |
 |---|---|---|
-| `fs_sip_gateway` (id=100) | name=carrier-demo, realm/proxy=`sip.carrier.example.com` | FS external profile 上的 SIP trunk |
-| `call_display` (id=100,101) | phone=`01012345678`, 主叫+被叫 | 外呼显号（`ICallServiceImpl.makeCall` 强制要求） |
-| `call_route` (id=100) | route_num=`^[0-9]{11,}$`, route_type=2, route_value=`'100'` | 11+ 位号码路由到 carrier-demo（MySQL REGEXP 匹配） |
-| `fs_dialplan` (id=18) | expression=`^01012345678$`, context=public | 入向 DID → 坐席 1000 |
+| `fs_sip_gateway` (id=100) | name=carrier-demo, realm/proxy=`sip.carrier.example.com`, outbound_prefix=`9118` | FS external profile 上的 SIP trunk（`outbound_prefix` 为外呼前缀） |
+| `call_display` (id=100,101) | phone=`85257459770`, 主叫+被叫 | 外呼显号（运营商分配的 DID） |
+| `call_route` (id=100) | route_num=`^[0-9]{7,15}$`, route_type=2, route_value=`'100'` | 7-15 位号码路由到 carrier-demo（MySQL REGEXP 匹配） |
+| `fs_dialplan` (outbound-via-carrier) | expression=`^(\d{7,15})$`, context=public | 软电话直拨外线：自动加前缀走网关 |
+| `fs_dialplan` (id=18) | expression=`^85257459770$`, context=public | 入向 DID → 坐席 1000 |
 
 ### 接入真实运营商的改造步骤
 
@@ -135,7 +136,8 @@ curl http://localhost:4320/api/sip/config
      user_name = '<SIP账号>',
      password = '<SIP密码>',
      register = 1,            -- 1=需注册，0=不注册（部分运营商 IP 鉴权）
-     transport = 1            -- 1=UDP, 2=TCP
+     transport = 1,           -- 1=UDP, 2=TCP
+     outbound_prefix = '9118' -- 运营商要求的外呼前缀/接入码（无需前缀则留空）
    WHERE id = 100;
    ```
 2. **替换显号**：`UPDATE call_display SET phone = '<运营商分配的 DID>' WHERE id IN (100, 101);`
@@ -169,6 +171,25 @@ docker compose exec -T freeswitch fs_cli -p ClueCon -x \
 
 # 入呼：从 PSTN 拨运营商 DID → 应振铃软电话 1000
 ```
+
+### 外呼前缀（号码自动转换）
+
+部分运营商要求在被叫号码前加特定前缀（接入码）才能接通，如 `9118`。
+此前缀配置在**网关管理页面**（`fs_sip_gateway.outbound_prefix`），系统自动拼接，
+用户拨号时只需输入实际号码。
+
+**两种外呼方式都支持**：
+
+| 方式 | 前缀处理位置 | 说明 |
+|---|---|---|
+| Web 应用外呼 | `ICallServiceImpl.makeCall()` | Java 层从网关读取前缀，拼到 callee 后发起 ESL originate |
+| 软电话直拨 | FS 拨号计划 `outbound-via-carrier` | FS 匹配 7-15 位号码后，在 bridge 时拼前缀 |
+
+**示例**：网关 `outbound_prefix=9118`，用户拨 `85265494339`（香港号码）
+→ 系统发起 `911885265494339@8.222.185.49`
+
+> 软电话直拨的拨号计划规则中，前缀和网关地址是硬编码的（`9118$1@8.222.185.49`），
+> 修改网关后需同步更新 `fs_dialplan` 中 `outbound-via-carrier` 规则的 `content` 字段。
 
 ### 常见运营商参数差异
 

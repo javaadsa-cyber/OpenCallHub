@@ -135,5 +135,12 @@ public class FsSipGateway extends BaseEntity implements Serializable {
     @Schema(description = "网关类型 0-非外线 1-外线")
     @TableField("gateway_type")
     private Integer gatewayType;
+
+    /**
+     * 外呼前缀（自动加在被叫号码前，如运营商要求的接入码 9118）
+     */
+    @Schema(description = "外呼前缀")
+    @TableField("outbound_prefix")
+    private String outboundPrefix;
 }
 

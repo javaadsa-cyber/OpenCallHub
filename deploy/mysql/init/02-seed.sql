@@ -123,8 +123,8 @@ VALUES
 INSERT INTO call_display
 (`id`, `phone`, `type`, `area`, `create_by`, `create_time`, `del_flag`)
 VALUES
-(100, '01012345678', 1, '北京', 1, NOW(), 0),
-(101, '01012345678', 2, '北京', 1, NOW(), 0);
+(100, '85257459770', 1, '香港', 1, NOW(), 0),
+(101, '85257459770', 2, '香港', 1, NOW(), 0);
 
 -- ③ 呼出路由：匹配 11+ 位数字（中国手机号 1xx + 固话 0xx），走 carrier-demo gateway
 --    SQL 用 MySQL REGEXP 匹配（见 CallRouteMapper.xml: #{routeNumber} regexp cr.route_num）
@@ -143,9 +143,9 @@ INSERT INTO fs_dialplan
 (`group_id`, `name`, `type`, `expression`, `context_name`, `content`, `describe`,
  `create_by`, `create_time`, `del_flag`)
 VALUES
-(2, 'inbound-did-demo', 'xml', '^01012345678$', 'public',
- '<extension name="inbound-did-demo"><condition field="destination_number" expression="^01012345678$"><action application="answer"/><action application="set" data="call_direction=inbound"/><action application="bridge" data="user/1000@${domain}"/></condition></extension>',
- '运营商入向 DID 01012345678 → 坐席 1000（占位符，按真实 DID 改）', 1, NOW(), 0);
+(2, 'inbound-did-demo', 'xml', '^85257459770$', 'public',
+ '<extension name="inbound-did-demo"><condition field="destination_number" expression="^85257459770$"><action application="answer"/><action application="set" data="call_direction=inbound"/><action application="bridge" data="user/1000@${domain}"/></condition></extension>',
+ '运营商入向 DID 85257459770 → 坐席 1000', 1, NOW(), 0);
 
 -- ============================================================
 -- SIP 服务器动态配置（前端软电话通过 /api/sip/config 获取）
@@ -168,3 +168,38 @@ CREATE TABLE IF NOT EXISTS sip_server_config (
 
 INSERT INTO sip_server_config (`ws_url`, `sip_host`, `sip_port`)
 VALUES ('ws://120.253.136.198:5066', '120.253.136.198', 5060);
+
+-- ============================================================
+-- 网关外呼前缀（如运营商接入码 9118）
+-- 作用：系统发起外呼时自动将此前缀拼到被叫号码前，用户无需手动输入。
+-- 字段加在 fs_sip_gateway 上：不同运营商前缀不同，是网关属性。
+-- 注意：system.sql 建表时不含此列，首次部署由此处 ALTER 补上。
+--       已有部署（数据卷未重建）需手动执行本段 ALTER + UPDATE。
+-- ============================================================
+SET @col_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = 'openCallHub' AND TABLE_NAME = 'fs_sip_gateway' AND COLUMN_NAME = 'outbound_prefix');
+SET @sql = IF(@col_exists = 0,
+  'ALTER TABLE fs_sip_gateway ADD COLUMN `outbound_prefix` VARCHAR(20) DEFAULT '''' COMMENT ''外呼前缀（自动加在被叫号码前）'' AFTER gateway_type',
+  'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 为已有网关设置前缀（按实际运营商参数修改）
+UPDATE fs_sip_gateway SET outbound_prefix = '9118' WHERE id = 100 AND (outbound_prefix IS NULL OR outbound_prefix = '');
+
+-- ============================================================
+-- 软电话直拨外线拨号计划
+-- 作用：软电话注册到 FS 后直接拨外部号码（如 85265494339），
+--       FS 自动加 9118 前缀走运营商网关。
+-- 匹配：7-15 位纯数字（排除 10xx 分机，因为 local-extension 先匹配）。
+-- 注意：前缀和网关地址需与 fs_sip_gateway 中的实际配置保持一致。
+-- ============================================================
+INSERT INTO fs_dialplan
+(`group_id`, `name`, `type`, `expression`, `context_name`, `content`, `describe`,
+ `create_by`, `create_time`, `del_flag`)
+SELECT 1, 'outbound-via-carrier', 'xml', '^([0-9]{7,15})$', 'public',
+  '<extension name="outbound-via-carrier"><condition field="destination_number" expression="^([0-9]{7,15})$"><action application="bridge" data="sofia/external/9118$1@8.222.185.49"/></condition></extension>',
+  '软电话直拨外线：自动加 9118 前缀走运营商网关（按实际网关配置修改前缀和地址）',
+  1, NOW(), 0
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM fs_dialplan WHERE name = 'outbound-via-carrier' AND del_flag = 0);

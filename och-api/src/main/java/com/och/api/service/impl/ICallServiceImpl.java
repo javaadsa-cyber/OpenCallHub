@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
 import com.och.api.service.ICallService;
 import com.och.common.domain.CallInfo;
 import com.och.common.domain.ChannelInfo;
@@ -113,8 +114,13 @@ public class ICallServiceImpl implements ICallService {
 
         FsSipGateway sipGateway = iFsSipGatewayService.getDetail(Long.valueOf(callRoute.getRouteValue()));
 
+        // 外呼前缀转换：从网关配置读取前缀，自动拼到被叫号码前（callInfo 中保持原号码用于 CDR）
+        String actualCallee = callInfo.getCallee();
+        if (StrUtil.isNotBlank(sipGateway.getOutboundPrefix())) {
+            actualCallee = sipGateway.getOutboundPrefix() + actualCallee;
+        }
 
-        fsClient.makeCall(callId, callInfo.getCallee(), callInfo.getCalleeDisplay(), uniqueId, query.getCallerTimeOut(), sipGateway);
+        fsClient.makeCall(callId, actualCallee, callInfo.getCalleeDisplay(), uniqueId, query.getCallerTimeOut(), sipGateway);
         return callId;
     }
 
