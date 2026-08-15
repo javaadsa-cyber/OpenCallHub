@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "SIP 服务器配置")
 @RestController
-@RequestMapping("/api/sip")
+@RequestMapping("/sip")
 @RequiredArgsConstructor
 public class SipServerConfigController extends BaseController {
 

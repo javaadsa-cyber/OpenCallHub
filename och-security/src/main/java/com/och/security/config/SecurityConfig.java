@@ -61,7 +61,7 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/fs/cdr/**",
                                 "/fs/curl/**",
-                                "/api/sip/config",
+                                "/sip/config",
                                 "/ws/**"
                         ).permitAll().anyRequest().authenticated()
                 )
