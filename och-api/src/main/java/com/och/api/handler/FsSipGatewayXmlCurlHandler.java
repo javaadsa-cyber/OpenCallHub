@@ -63,7 +63,35 @@ public class FsSipGatewayXmlCurlHandler implements FsXmlCurlEventStrategy {
         configuration.setDescription("sofia endpoint");
         configuration.setProfiles(getProfiles());
         configuration.setGlobalSettings(new GlobalSettings().setParam(getGlobalSettingsParamList()));
-        return configuration.toXmlString();
+        String xml = configuration.toXmlString();
+
+        // 为 internal profile 强制启用 proxy-media 模式，解决 NAT 穿透问题
+        if ("internal".equals(keyValue)) {
+            xml = injectProxyMedia(xml);
+        }
+
+        return xml;
+    }
+
+    /**
+     * 向 internal profile 的 settings 中注入 proxy-media 和 media-option 参数
+     * 由于 och-common 的 Param 类不支持任意参数名，通过 XML 字符串后处理实现
+     */
+    private String injectProxyMedia(String xml) {
+        // 在 </settings> 标签前插入 proxy-media 参数
+        String proxyMediaParams =
+            "<param name=\"proxy-media\" value=\"true\"/>\n" +
+            "<param name=\"media-option\" value=\"resume-media-on-hold\"/>";
+
+        // 查找 internal profile 的 settings 结束标签
+        int profileStart = xml.indexOf("<profile name=\"internal\"");
+        if (profileStart == -1) return xml;
+
+        int settingsEnd = xml.indexOf("</settings>", profileStart);
+        if (settingsEnd == -1) return xml;
+
+        // 在 </settings> 前插入参数
+        return xml.substring(0, settingsEnd) + proxyMediaParams + "\n" + xml.substring(settingsEnd);
     }
 
     private List<Param> getGlobalSettingsParamList() {
@@ -108,7 +136,7 @@ public class FsSipGatewayXmlCurlHandler implements FsXmlCurlEventStrategy {
         paramList.add(new Param(SipGatewaySettingParamEnum.WATCHDOG_EVENT_TIMEOUT.key, "30000"));
         paramList.add(new Param(SipGatewaySettingParamEnum.LOG_AUTH_FAILURES.key, "false"));
         paramList.add(new Param(SipGatewaySettingParamEnum.FORWARD_UNSOLICITED_MWI_NOTIFY.key, "false"));
-        paramList.add(new Param(SipGatewaySettingParamEnum.CONTEXT.key, "public"));
+        paramList.add(new Param(SipGatewaySettingParamEnum.CONTEXT.key, "default"));
         paramList.add(new Param(SipGatewaySettingParamEnum.RFC2833_PT.key, "101"));
         paramList.add(new Param(SipGatewaySettingParamEnum.SIP_PORT.key, "$${internal_sip_port}"));
         paramList.add(new Param(SipGatewaySettingParamEnum.DIALPLAN.key, "XML"));
@@ -156,6 +184,8 @@ public class FsSipGatewayXmlCurlHandler implements FsXmlCurlEventStrategy {
         paramList.add(new Param(SipGatewaySettingParamEnum.APPLY_CANDIDATE_ACL.key, "wan"));
         paramList.add(new Param(SipGatewaySettingParamEnum.APPLY_CANDIDATE_ACL.key, "localnet.auto"));
         paramList.add(new Param(SipGatewaySettingParamEnum.APPLY_CANDIDATE_ACL.key, "rfc1918.auto"));
+        paramList.add(new Param("proxy-media", "true"));
+        paramList.add(new Param("media-option", "resume-media-on-hold"));
         return paramList;
     }
 

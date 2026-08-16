@@ -136,6 +136,28 @@ services:
       redis:
         condition: service_healthy
 
+  coturn:
+    image: coturn/coturn:latest
+    container_name: och-coturn
+    command: >
+      -n
+      --listening-port=3478
+      --tls-listening-port=5349
+      --min-port=49152
+      --max-port=65535
+      --fingerprint
+      --realm=opencallhub.local
+      --lt-cred-mech
+      --user=och:och123456
+      --external-ip=${OCH_HOST_IP:-120.253.136.198}
+      --log-file=stdout
+    ports:
+      - "3478:3478/udp"
+      - "3478:3478/tcp"
+      - "5349:5349/tcp"
+      - "49152-49352:49152-49352/udp"
+    networks: [och]
+
   # 可选：och-file-client 正常部署在 FreeSWITCH 主机上（本地回放录音文件），
   # 本地方案默认不启用；如需验证可照 och-api 的 build 方式自行添加。
 
